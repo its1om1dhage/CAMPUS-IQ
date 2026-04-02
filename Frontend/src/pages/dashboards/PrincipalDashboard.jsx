@@ -1,91 +1,118 @@
+import { useState } from "react";
 import Layout from "../../Components/Layout";
 import { StatCard, StatCardGrid } from "../../Components/StatCard";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
-import { Users, TrendingUp, Award, Building2, FileText, Download, Eye } from "lucide-react";
+import ExportButton from "../../Components/ExportButton";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from "recharts";
+import { GraduationCap, Building2, Users, Award, TrendingUp, FileText } from "lucide-react";
+import { MOCK_DEPT_STATS, MOCK_TRENDS } from "../../services/supabase";
 
-const collegeOverview = [
-  { month: "Oct", rd: 62, quality: 80 },
-  { month: "Nov", rd: 70, quality: 82 },
-  { month: "Dec", rd: 65, quality: 83 },
-  { month: "Jan", rd: 80, quality: 85 },
-  { month: "Feb", rd: 90, quality: 87 },
-  { month: "Mar", rd: 100, quality: 90 },
-];
-
-const deptSummary = [
-  { dept: "CE", faculty: 14, students: 320, rdScore: "91%", accred: "NBA Pending" },
-  { dept: "IT", faculty: 12, students: 280, rdScore: "89%", accred: "NBA Accredited" },
-  { dept: "EE", faculty: 10, students: 240, rdScore: "85%", accred: "NBA Accredited" },
-  { dept: "MECH", faculty: 13, students: 300, rdScore: "80%", accred: "NAAC" },
-  { dept: "CIVIL", faculty: 9, students: 200, rdScore: "76%", accred: "NAAC" },
+const announcements = [
+  { text: "NAAC peer team visit scheduled for April 15, 2026", time: "2h ago", type: "info" },
+  { text: "R&D data submission deadline extended to March 31", time: "1d ago", type: "warning" },
+  { text: "CSE department achieved 85% approval rate — highest this year", time: "2d ago", type: "success" },
+  { text: "New patent filed by EE department faculty", time: "3d ago", type: "success" },
 ];
 
 export default function PrincipalDashboard() {
+  const totalSubmissions = MOCK_DEPT_STATS.reduce((a, d) => a + d.total, 0);
+  const totalApproved = MOCK_DEPT_STATS.reduce((a, d) => a + d.approved, 0);
+  const totalPatents = MOCK_DEPT_STATS.reduce((a, d) => a + d.patents, 0);
+  const approvalRate = Math.round((totalApproved / totalSubmissions) * 100);
+  const [activeTab, setActiveTab] = useState("executive");
+
   return (
-    <Layout title="Principal Dashboard" subtitle="CAMPUS-IQ · Entire College Overview & Administration">
+    <Layout title="Principal Dashboard" subtitle="CAMPUS-IQ · Entire College · Executive Summary">
       <StatCardGrid>
-        <StatCard label="Total Students" value="1,340" icon={Users} color="blue" trend={2.4} />
-        <StatCard label="Total Faculty" value="58" icon={Users} color="green" />
-        <StatCard label="College R&D Score" value="91%" icon={TrendingUp} color="cyan" trend={5.1} />
-        <StatCard label="NAAC Grade" value="A+" icon={Award} color="orange" />
+        <StatCard label="Total College R&D" value={totalSubmissions} icon={TrendingUp} color="blue" trend={15.2} />
+        <StatCard label="Overall Approval Rate" value={`${approvalRate}%`} icon={Award} color="green" trend={3.1} />
+        <StatCard label="Total Patents" value={totalPatents} icon={GraduationCap} color="cyan" trend={8.0} />
+        <StatCard label="Active Departments" value={MOCK_DEPT_STATS.length} icon={Building2} color="purple" />
       </StatCardGrid>
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div className="card-header">
-          <div>
-            <div className="card-title">College-Wide Performance</div>
-            <div className="card-subtitle">R&D output vs Quality score trend</div>
-          </div>
-          <button className="btn btn-secondary btn-sm"><Download size={13} /> Annual Report</button>
-        </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={collegeOverview}>
-            <XAxis dataKey="month" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text-primary)" }} />
-            <Legend iconSize={10} wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }} />
-            <Line type="monotone" dataKey="rd" stroke="var(--primary)" strokeWidth={2.5} dot={{ fill: "var(--primary)", r: 4 }} name="R&D Output" />
-            <Line type="monotone" dataKey="quality" stroke="var(--success)" strokeWidth={2.5} dot={{ fill: "var(--success)", r: 4 }} name="Quality Score" />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Department Summary */}
       <div className="card">
         <div className="card-header">
-          <div>
-            <div className="card-title">Department Overview</div>
-            <div className="card-subtitle">All departments at a glance</div>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-secondary btn-sm"><FileText size={13} /> IQAC Report</button>
-            <button className="btn btn-primary btn-sm"><Download size={13} /> Export All</button>
-          </div>
+          <div className="card-title">Executive Dashboard</div>
+          <ExportButton data={MOCK_DEPT_STATS} filename="principal_executive_report" label="Export Report" />
         </div>
-        <table className="data-table">
-          <thead>
-            <tr><th>Department</th><th>Faculty</th><th>Students</th><th>R&D Score</th><th>Accreditation</th><th>Details</th></tr>
-          </thead>
-          <tbody>
-            {deptSummary.map((d, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: 700, color: "var(--text-accent)" }}>{d.dept}</td>
-                <td>{d.faculty}</td>
-                <td>{d.students}</td>
-                <td>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div className="progress-track" style={{ width: 60, height: 5 }}>
-                      <div className={`progress-fill ${parseInt(d.rdScore) > 85 ? "green" : parseInt(d.rdScore) > 75 ? "orange" : "red"}`} style={{ width: d.rdScore }} />
+
+        <div className="tabs">
+          {[
+            { key: "executive", label: "📊 Executive Summary" },
+            { key: "accreditation", label: "🏆 Accreditation" },
+          ].map(t => (
+            <button key={t.key} className={`tab ${activeTab === t.key ? "active" : ""}`} onClick={() => setActiveTab(t.key)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "executive" && (
+          <div>
+            <div className="grid-2" style={{ marginTop: 8 }}>
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 14 }}>College-wide R&D Growth</div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={MOCK_TRENDS}>
+                    <XAxis dataKey="month" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text-primary)" }} />
+                    <Line type="monotone" dataKey="submissions" stroke="var(--primary-light)" strokeWidth={2.5} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 14 }}>Latest Updates</div>
+                <div className="activity-list">
+                  {announcements.map((a, i) => (
+                    <div key={i} className="activity-item">
+                      <div className={`activity-dot ${a.type}`}>
+                        {a.type === "info" ? "ℹ" : a.type === "warning" ? "⚠" : "✓"}
+                      </div>
+                      <div className="activity-body">
+                        <div className="activity-title">{a.text}</div>
+                        <div className="activity-meta">{a.time}</div>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600 }}>{d.rdScore}</span>
-                  </div>
-                </td>
-                <td><span className="badge info">{d.accred}</span></td>
-                <td><button className="btn btn-secondary btn-sm"><Eye size={12} /> View</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <div style={{ fontWeight: 600, marginBottom: 14 }}>Department Performance Overview</div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={MOCK_DEPT_STATS} barCategoryGap="30%">
+                  <XAxis dataKey="short" tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text-primary)" }} />
+                  <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="papers" fill="var(--primary)" radius={[3, 3, 0, 0]} name="Papers" stackId="a" />
+                  <Bar dataKey="projects" fill="var(--accent)" radius={[0, 0, 0, 0]} name="Projects" stackId="a" />
+                  <Bar dataKey="patents" fill="var(--success)" radius={[3, 3, 0, 0]} name="Patents" stackId="a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "accreditation" && (
+          <div style={{ marginTop: 8 }}>
+            <div className="grid-3">
+              {[
+                { label: "NAAC Score", value: "3.51", subtext: "Grade A+", color: "green", icon: Award },
+                { label: "NBA Programs", value: "3/5", subtext: "Accredited", color: "blue", icon: GraduationCap },
+                { label: "R&D Criterion Score", value: "3.2/4.0", subtext: "Criterion III", color: "cyan", icon: TrendingUp },
+              ].map(item => (
+                <div key={item.label} style={{ padding: "20px", background: "var(--bg-elevated)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border)", textAlign: "center" }}>
+                  <item.icon size={28} style={{ color: item.color === "green" ? "var(--success)" : item.color === "blue" ? "var(--primary-light)" : "var(--accent)", margin: "0 auto 10px" }} />
+                  <div style={{ fontSize: 24, fontWeight: 800, fontFamily: "Outfit", color: "var(--text-primary)" }}>{item.value}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500, marginTop: 4 }}>{item.label}</div>
+                  <span className="badge muted" style={{ marginTop: 8 }}>{item.subtext}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

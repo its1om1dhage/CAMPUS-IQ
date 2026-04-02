@@ -1,104 +1,88 @@
+import { useState } from "react";
 import Layout from "../../Components/Layout";
 import { StatCard, StatCardGrid } from "../../Components/StatCard";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
-import { TrendingUp, Award, BarChart3, Building2, FileText, Download } from "lucide-react";
-
-const yearlyData = [
-  { year: "2022", rd: 80, quality: 75 },
-  { year: "2023", rd: 88, quality: 80 },
-  { year: "2024", rd: 92, quality: 85 },
-  { year: "2025", rd: 95, quality: 88 },
-  { year: "2026", rd: 97, quality: 91 },
-];
-
-const compliance = [
-  { item: "NAAC Accreditation", status: "Valid till 2028", score: "A+ (3.24)", risk: "Low" },
-  { item: "University Affiliation", status: "Valid till 2027", score: "Full Affiliate", risk: "Low" },
-  { item: "NBA — CE Branch", status: "Under Process", score: "Pending", risk: "Medium" },
-  { item: "NBA — IT Branch", status: "Accredited", score: "2022–2025", risk: "Renewal Due" },
-  { item: "AICTE Compliance", status: "Compliant", score: "100%", risk: "Low" },
-];
-
-const highlights = [
-  { label: "Total Enrollment", value: "1,340", change: "+2.4%" },
-  { label: "Faculty Positions", value: "58", change: "+5.4%" },
-  { label: "Research Output", value: "146", change: "+8.3%" },
-  { label: "Funded Projects", value: "12", change: "+3" },
-];
+import FilterBar from "../../Components/FilterBar";
+import ExportButton from "../../Components/ExportButton";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Building2, TrendingUp, Target, Award } from "lucide-react";
+import { MOCK_DEPT_STATS, ACADEMIC_YEARS } from "../../services/supabase";
 
 export default function ManagementDashboard() {
+  const [deptFilter, setDeptFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("2024-25");
+
+  const totalSubmissions = MOCK_DEPT_STATS.reduce((a, d) => a + d.total, 0);
+  const totalApproved = MOCK_DEPT_STATS.reduce((a, d) => a + d.approved, 0);
+  const totalPatents = MOCK_DEPT_STATS.reduce((a, d) => a + d.patents, 0);
+  const approvalRate = Math.round((totalApproved / totalSubmissions) * 100);
+
+  const filteredDepts = deptFilter ? MOCK_DEPT_STATS.filter(d => d.dept === deptFilter || d.short === deptFilter) : MOCK_DEPT_STATS;
+
   return (
-    <Layout title="College Management" subtitle="CAMPUS-IQ · Institutional Governance & Strategic Overview">
+    <Layout title="Management Dashboard" subtitle="CAMPUS-IQ · College Management · High-Level View">
       <StatCardGrid>
-        <StatCard label="Total Enrollment" value="1,340" icon={TrendingUp} color="blue" trend={2.4} />
-        <StatCard label="Annual R&D Output" value="146" icon={BarChart3} color="cyan" trend={8.3} />
-        <StatCard label="NAAC Grade" value="A+" icon={Award} color="green" />
-        <StatCard label="Funded Projects" value="₹1.2 Cr" icon={Building2} color="orange" trend={15} />
+        <StatCard label="Total R&D Entries" value={totalSubmissions} icon={TrendingUp} color="blue" />
+        <StatCard label="Approval Rate" value={`${approvalRate}%`} icon={Award} color="green" />
+        <StatCard label="Total Patents" value={totalPatents} icon={Target} color="cyan" />
+        <StatCard label="Departments" value={MOCK_DEPT_STATS.length} icon={Building2} color="purple" />
       </StatCardGrid>
 
-      <div className="grid-2" style={{ marginBottom: 20 }}>
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">5-Year Institutional Growth</div>
-              <div className="card-subtitle">R&D output and quality score trajectory</div>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={yearlyData}>
-              <XAxis dataKey="year" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[60, 100]} tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text-primary)" }} />
-              <Legend iconSize={10} wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }} />
-              <Line type="monotone" dataKey="rd" stroke="var(--primary)" strokeWidth={2.5} dot={{ fill: "var(--primary)", r: 5 }} name="R&D Score" />
-              <Line type="monotone" dataKey="quality" stroke="var(--warning)" strokeWidth={2.5} dot={{ fill: "var(--warning)", r: 5 }} name="Quality Score" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="card">
-          <div className="card-header"><div className="card-title">Key Metrics</div></div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {highlights.map((h, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border)" }}>
-                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{h.label}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)" }}>{h.value}</span>
-                  <span style={{ fontSize: 11, color: "var(--success)", background: "rgba(16,185,129,0.12)", padding: "2px 8px", borderRadius: 99 }}>{h.change}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Compliance Table */}
       <div className="card">
         <div className="card-header">
+          <div><div className="card-title">Management Overview</div><div className="card-subtitle">High-level R&D stats by department and year</div></div>
+          <ExportButton data={filteredDepts} filename="management_report" label="Export Report" />
+        </div>
+
+        {/* Simple year + dept filter */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+          <select className="form-select" value={yearFilter} onChange={e => setYearFilter(e.target.value)} style={{ width: "auto", minWidth: 130, height: 36, padding: "0 12px" }}>
+            <option value="">All Years</option>
+            {ACADEMIC_YEARS.map(y => <option key={y}>{y}</option>)}
+          </select>
+          <select className="form-select" value={deptFilter} onChange={e => setDeptFilter(e.target.value)} style={{ width: "auto", minWidth: 130, height: 36, padding: "0 12px" }}>
+            <option value="">All Departments</option>
+            {MOCK_DEPT_STATS.map(d => <option key={d.dept} value={d.short}>{d.dept}</option>)}
+          </select>
+        </div>
+
+        <div className="grid-2">
           <div>
-            <div className="card-title">Regulatory Compliance Status</div>
-            <div className="card-subtitle">Accreditation and affiliation compliance overview</div>
+            <div style={{ fontWeight: 600, marginBottom: 14 }}>Submission Summary by Department</div>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={filteredDepts} barCategoryGap="35%">
+                <XAxis dataKey="short" tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text-primary)" }} />
+                <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="approved" fill="var(--success)" radius={[3, 3, 0, 0]} name="Approved" />
+                <Bar dataKey="pending" fill="var(--warning)" radius={[3, 3, 0, 0]} name="Pending" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-secondary btn-sm"><FileText size={13} /> Board Report</button>
-            <button className="btn btn-primary btn-sm"><Download size={13} /> Export</button>
+
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 14 }}>Department Stats</div>
+            <table className="data-table">
+              <thead>
+                <tr><th>Dept</th><th>Total</th><th>Approved</th><th>Rate</th></tr>
+              </thead>
+              <tbody>
+                {filteredDepts.map(d => (
+                  <tr key={d.dept}>
+                    <td style={{ fontWeight: 600 }}>{d.short}</td>
+                    <td>{d.total}</td>
+                    <td style={{ color: "var(--success)", fontWeight: 600 }}>{d.approved}</td>
+                    <td>
+                      <span className={`badge ${Math.round((d.approved / d.total) * 100) > 80 ? "success" : "warning"}`}>
+                        {Math.round((d.approved / d.total) * 100)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-        <table className="data-table">
-          <thead>
-            <tr><th>Item</th><th>Status</th><th>Score / Grade</th><th>Risk Level</th></tr>
-          </thead>
-          <tbody>
-            {compliance.map((c, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: 500 }}>{c.item}</td>
-                <td className="td-muted">{c.status}</td>
-                <td style={{ fontWeight: 600 }}>{c.score}</td>
-                <td><span className={`badge ${c.risk === "Low" ? "success" : c.risk === "Medium" || c.risk === "Renewal Due" ? "warning" : "danger"}`}>{c.risk}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </Layout>
   );

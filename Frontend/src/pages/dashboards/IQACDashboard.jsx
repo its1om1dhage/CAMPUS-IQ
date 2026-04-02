@@ -1,113 +1,145 @@
+import { useState } from "react";
 import Layout from "../../Components/Layout";
 import { StatCard, StatCardGrid } from "../../Components/StatCard";
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
-import { Shield, Award, CheckSquare, AlertTriangle, FileText, Download } from "lucide-react";
+import ExportButton from "../../Components/ExportButton";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar } from "recharts";
+import { Shield, Award, CheckSquare, Target, FileText, TrendingUp } from "lucide-react";
+import { MOCK_DEPT_STATS } from "../../services/supabase";
 
 const naacCriteria = [
-  { criterion: "Curricular", value: 88 },
-  { criterion: "Teaching", value: 92 },
-  { criterion: "Research", value: 85 },
-  { criterion: "Infrastructure", value: 78 },
-  { criterion: "Student Support", value: 90 },
-  { criterion: "Governance", value: 82 },
-  { criterion: "Best Practices", value: 75 },
+  { criterion: "Curricular Aspects", score: 3.4, max: 4.0, weight: 150 },
+  { criterion: "Teaching-Learning", score: 3.6, max: 4.0, weight: 300 },
+  { criterion: "Research & Innovation", score: 3.2, max: 4.0, weight: 250 },
+  { criterion: "Infrastructure", score: 3.8, max: 4.0, weight: 100 },
+  { criterion: "Student Support", score: 3.5, max: 4.0, weight: 100 },
+  { criterion: "Governance", score: 3.7, max: 4.0, weight: 100 },
 ];
 
-const qualityData = [
-  { month: "Oct", naac: 82, nba: 78 },
-  { month: "Nov", naac: 84, nba: 80 },
-  { month: "Dec", naac: 83, nba: 82 },
-  { month: "Jan", naac: 86, nba: 84 },
-  { month: "Feb", naac: 88, nba: 85 },
-  { month: "Mar", naac: 90, nba: 87 },
-];
-
-const auditItems = [
-  { item: "Faculty R&D Data Completeness", coverage: "94%", status: "Compliant", risk: "Low" },
-  { item: "Student Project Documentation", coverage: "87%", status: "Compliant", risk: "Low" },
-  { item: "Patent & IP Records", coverage: "72%", status: "Needs Attention", risk: "Medium" },
-  { item: "Funding & Grant Records", coverage: "65%", status: "Non-Compliant", risk: "High" },
-  { item: "Conference Publications", coverage: "89%", status: "Compliant", risk: "Low" },
-];
+const radarData = naacCriteria.map(c => ({ subject: c.criterion.split(" ")[0], score: c.score, fullMark: 4 }));
 
 export default function IQACDashboard() {
+  const [activeTab, setActiveTab] = useState("metrics");
+
+  const totalSubmissions = MOCK_DEPT_STATS.reduce((a, d) => a + d.total, 0);
+  const totalApproved = MOCK_DEPT_STATS.reduce((a, d) => a + d.approved, 0);
+  const researchScore = naacCriteria.find(c => c.criterion.includes("Research"))?.score || 0;
+  const overallNAAC = (naacCriteria.reduce((a, c) => a + (c.score / c.max) * c.weight, 0) / naacCriteria.reduce((a, c) => a + c.weight, 0) * 4).toFixed(2);
+
   return (
-    <Layout title="IQAC Incharge Dashboard" subtitle="CAMPUS-IQ · Internal Quality Assurance Cell">
+    <Layout title="IQAC Dashboard" subtitle="CAMPUS-IQ · Internal Quality Assurance Cell · Accreditation View">
       <StatCardGrid>
-        <StatCard label="NAAC Score" value="3.24 / 4" icon={Award} color="green" trend={0.12} trendLabel="from last cycle" />
-        <StatCard label="NBA Compliant Branches" value="3/5" icon={Shield} color="blue" />
-        <StatCard label="Audit Items" value="5" icon={CheckSquare} color="orange" />
-        <StatCard label="Critical Issues" value="1" icon={AlertTriangle} color="red" />
+        <StatCard label="NAAC Score (Projected)" value={overallNAAC} icon={Award} color="cyan" trend={0.15} />
+        <StatCard label="R&D Score" value={`${researchScore}/4.0`} icon={TrendingUp} color="green" />
+        <StatCard label="Total R&D Entries" value={totalSubmissions} icon={FileText} color="blue" />
+        <StatCard label="Approval Rate" value={`${Math.round((totalApproved / totalSubmissions) * 100)}%`} icon={CheckSquare} color="purple" />
       </StatCardGrid>
 
-      <div className="grid-2" style={{ marginBottom: 20 }}>
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">Quality Score Trends</div>
-              <div className="card-subtitle">NAAC vs NBA scores over 6 months</div>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={qualityData} barCategoryGap="30%">
-              <XAxis dataKey="month" tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[70, 100]} tick={{ fill: "var(--text-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10, color: "var(--text-primary)" }} />
-              <Legend iconSize={10} wrapperStyle={{ fontSize: 12, color: "var(--text-secondary)" }} />
-              <Bar dataKey="naac" fill="var(--success)" radius={[4,4,0,0]} name="NAAC Score" />
-              <Bar dataKey="nba" fill="var(--accent)" radius={[4,4,0,0]} name="NBA Score" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="card">
-          <div className="card-header">
-            <div className="card-title">NAAC Criteria Scores</div>
-          </div>
-          <ResponsiveContainer width="100%" height={200}>
-            <RadarChart data={naacCriteria}>
-              <PolarGrid stroke="var(--border)" />
-              <PolarAngleAxis dataKey="criterion" tick={{ fill: "var(--text-muted)", fontSize: 9 }} />
-              <Radar dataKey="value" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Audit Compliance Table */}
       <div className="card">
         <div className="card-header">
-          <div>
-            <div className="card-title">Audit Compliance Status</div>
-            <div className="card-subtitle">Data completeness and compliance tracking for accreditation</div>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-secondary btn-sm"><Download size={13} /> Export NAAC</button>
-            <button className="btn btn-primary btn-sm"><FileText size={13} /> Generate Audit Report</button>
-          </div>
+          <div className="card-title">Quality & Accreditation Center</div>
+          <ExportButton data={MOCK_DEPT_STATS} filename="iqac_audit_report" label="Export Audit Report" />
         </div>
-        <table className="data-table">
-          <thead>
-            <tr><th>Audit Item</th><th>Data Coverage</th><th>Compliance</th><th>Risk</th></tr>
-          </thead>
-          <tbody>
-            {auditItems.map((a, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: 500 }}>{a.item}</td>
-                <td>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div className="progress-track" style={{ flex: 1, height: 6, minWidth: 80 }}>
-                      <div className={`progress-fill ${parseInt(a.coverage) > 85 ? "green" : parseInt(a.coverage) > 70 ? "orange" : "red"}`} style={{ width: a.coverage }} />
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", minWidth: 36 }}>{a.coverage}</span>
-                  </div>
-                </td>
-                <td><span className={`badge ${a.status === "Compliant" ? "success" : a.status === "Needs Attention" ? "warning" : "danger"}`}>{a.status}</span></td>
-                <td><span className={`badge ${a.risk === "Low" ? "success" : a.risk === "Medium" ? "warning" : "danger"}`}>{a.risk}</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+
+        <div className="tabs">
+          {[
+            { key: "metrics", label: "📊 Quality Metrics" },
+            { key: "naac", label: "🏆 NAAC/NBA" },
+            { key: "audit", label: "📋 Audit-Ready Data" },
+          ].map(t => (
+            <button key={t.key} className={`tab ${activeTab === t.key ? "active" : ""}`} onClick={() => setActiveTab(t.key)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "metrics" && (
+          <div className="grid-2" style={{ marginTop: 8 }}>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 16 }}>Department Approval Rates</div>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={MOCK_DEPT_STATS}>
+                  <XAxis dataKey="short" tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fill: "var(--text-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => `${v}%`} contentStyle={{ background: "var(--bg-elevated)", border: "1px solid var(--border)", borderRadius: 10 }} />
+                  <Bar dataKey="approved" name="Approval %" fill="var(--success)" radius={[4, 4, 0, 0]}
+                    // Show as percentage
+                    label={false}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 16 }}>NAAC Radar Analysis</div>
+              <ResponsiveContainer width="100%" height={240}>
+                <RadarChart data={radarData}>
+                  <PolarGrid stroke="var(--border)" />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--text-muted)", fontSize: 10 }} />
+                  <Radar dataKey="score" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.25} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "naac" && (
+          <div style={{ marginTop: 8 }}>
+            <div className="alert-banner success" style={{ marginBottom: 20 }}>
+              <Award size={15} />
+              <div>Projected NAAC score: <strong>{overallNAAC}/4.0</strong> · Category: <strong>A+</strong> (projected)</div>
+            </div>
+            <table className="data-table">
+              <thead>
+                <tr><th>Criterion</th><th>Score</th><th>Max</th><th>Weight</th><th>Performance</th></tr>
+              </thead>
+              <tbody>
+                {naacCriteria.map(c => (
+                  <tr key={c.criterion}>
+                    <td style={{ fontWeight: 600 }}>{c.criterion}</td>
+                    <td style={{ fontWeight: 700, color: "var(--primary-light)" }}>{c.score}</td>
+                    <td style={{ color: "var(--text-muted)" }}>{c.max}</td>
+                    <td><span className="badge muted">{c.weight}</span></td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 160 }}>
+                        <div className="progress-track" style={{ flex: 1 }}>
+                          <div className="progress-fill green" style={{ width: `${(c.score / c.max) * 100}%` }} />
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, minWidth: 36 }}>{Math.round((c.score / c.max) * 100)}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === "audit" && (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ marginBottom: 16, display: "flex", gap: 10 }}>
+              <ExportButton data={MOCK_DEPT_STATS} filename="audit_data_export" label="Export for Audit" />
+              <button className="btn btn-secondary btn-sm"><FileText size={13} /> Generate NAAC Report</button>
+            </div>
+            <table className="data-table">
+              <thead>
+                <tr><th>Department</th><th>Total Entries</th><th>Approved</th><th>Pending</th><th>Approval Rate</th><th>Papers</th><th>Projects</th><th>Patents</th></tr>
+              </thead>
+              <tbody>
+                {MOCK_DEPT_STATS.map(d => (
+                  <tr key={d.dept}>
+                    <td style={{ fontWeight: 600 }}>{d.dept}</td>
+                    <td>{d.total}</td>
+                    <td style={{ color: "var(--success)", fontWeight: 600 }}>{d.approved}</td>
+                    <td style={{ color: "var(--warning)", fontWeight: 600 }}>{d.pending}</td>
+                    <td><span className={`badge ${Math.round((d.approved / d.total) * 100) > 80 ? "success" : "warning"}`}>{Math.round((d.approved / d.total) * 100)}%</span></td>
+                    <td>{d.papers}</td>
+                    <td>{d.projects}</td>
+                    <td>{d.patents}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </Layout>
   );

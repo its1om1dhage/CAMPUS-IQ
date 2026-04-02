@@ -3,6 +3,8 @@ import { AuthProvider, useAuth, ROLES } from "./context/AuthContext";
 
 // Pages
 import Login from "./pages/Login";
+import SubmitForm from "./pages/SubmitForm";
+import SubmissionDetail from "./pages/SubmissionDetail";
 
 // Role Dashboards
 import StudentDashboard from "./pages/dashboards/StudentDashboard";
@@ -49,33 +51,27 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Public */}
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+
+      {/* Dashboard */}
       <Route path="/dashboard" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      {/* All sub-pages fallback to dashboard for now */}
-      <Route path="/rd-projects" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/rd-submit" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/rd-submissions" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/verify" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/team" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/pending" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/performance" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/publications" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/patents" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/export" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/trends" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/reports" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/quality" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/accreditation" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/naac" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/departments" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/overview" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/planning" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/deadlines" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/users" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/database" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/permissions" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
-      <Route path="/config" element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
+
+      {/* R&D Pages */}
+      <Route path="/rd-submit" element={<ProtectedRoute><SubmitForm /></ProtectedRoute>} />
+      <Route path="/submission/:id" element={<ProtectedRoute><SubmissionDetail /></ProtectedRoute>} />
+
+      {/* These alias back to role dashboard for now */}
+      {[
+        "/rd-projects", "/rd-submissions", "/verify", "/team", "/pending",
+        "/performance", "/profile", "/publications", "/patents", "/export",
+        "/trends", "/reports", "/quality", "/accreditation", "/naac",
+        "/departments", "/overview", "/planning", "/deadlines",
+        "/users", "/database", "/permissions", "/config",
+      ].map(path => (
+        <Route key={path} path={path} element={<ProtectedRoute><RoleDashboard /></ProtectedRoute>} />
+      ))}
+
       {/* Redirect root → login */}
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />

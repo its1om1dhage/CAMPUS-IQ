@@ -1,24 +1,34 @@
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-
-export function StatCard({ label, value, icon: Icon, color = "blue", trend, trendLabel }) {
-  const trendEl = trend !== undefined
-    ? trend > 0
-      ? <span className="stat-trend up"><TrendingUp size={11} style={{display:'inline',marginRight:3}} />+{trend}% {trendLabel || "vs last month"}</span>
-      : trend < 0
-      ? <span className="stat-trend down"><TrendingDown size={11} style={{display:'inline',marginRight:3}} />{trend}% {trendLabel || "vs last month"}</span>
-      : <span className="stat-trend" style={{color:"var(--text-muted)"}}><Minus size={11} style={{display:'inline',marginRight:3}} />No change</span>
-    : null;
+// StatCard.jsx — supports loading skeleton + trend
+export function StatCard({ label, value, icon: Icon, color = "blue", trend, subtext, loading }) {
+  if (loading) {
+    return (
+      <div className={`stat-card ${color}`}>
+        <div style={{ flex: 1 }}>
+          <div className="skeleton-line" style={{ width: "60%", marginBottom: 12 }} />
+          <div className="skeleton-line" style={{ width: "40%", height: 28 }} />
+        </div>
+        <div className={`stat-icon ${color}`} style={{ opacity: 0.3 }}>
+          {Icon && <Icon size={20} />}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`stat-card ${color}`}>
-      <div>
+      <div style={{ flex: 1 }}>
         <div className="stat-label">{label}</div>
         <div className="stat-value">{value}</div>
-        {trendEl && <div className="mt-1">{trendEl}</div>}
+        {trend !== undefined && (
+          <div className={`stat-trend ${trend >= 0 ? "up" : "down"}`}>
+            {trend >= 0 ? "↑" : "↓"} {Math.abs(trend)}% vs last month
+          </div>
+        )}
+        {subtext && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{subtext}</div>}
       </div>
       {Icon && (
         <div className={`stat-icon ${color}`}>
-          <Icon size={22} />
+          <Icon size={20} />
         </div>
       )}
     </div>
