@@ -360,8 +360,9 @@ export default function AdminDashboard() {
           submissions={submissions}
           canReview
           roleTabs={ADMIN_ROLE_TABS}
-          onApprove={async (id, r) => { await approveSubmission(id, r); await load(); }}
-          onReject={async (id, r)  => { await rejectSubmission(id, r);  await load(); }}
+          onApprove={async (id, r) => { await approveSubmission(id, r); }}
+          onReject={async (id, r)  => { await rejectSubmission(id, r);  }}
+          onRefresh={load}
         />
       )}
 

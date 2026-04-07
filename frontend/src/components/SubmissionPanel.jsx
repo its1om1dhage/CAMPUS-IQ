@@ -14,7 +14,9 @@ import RejectRemarkModal from './RejectRemarkModal';
 function SubmissionList({ items, selected, setSelected, canReview, onApprove, onReject, getDocumentUrl, setPreviewRecord }) {
   return (
     <div className="space-y-2.5">
-      {items.length ? items.map((item) => (
+      {items.length ? items.map((item) => {
+        const isTerminal = item.status === 'approved' || item.status === 'rejected';
+        return (
         <div
           key={item.id}
           onClick={() => setSelected(item)}
@@ -62,14 +64,26 @@ function SubmissionList({ items, selected, setSelected, canReview, onApprove, on
               {canReview && (
                 <>
                   <button
-                    onClick={e => { e.stopPropagation(); onApprove(item); }}
-                    className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-500 hover:text-white transition-all"
+                    disabled={isTerminal}
+                    onClick={e => { e.stopPropagation(); if (!isTerminal) onApprove(item); }}
+                    title={isTerminal ? `Already ${item.status}` : 'Approve'}
+                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold ring-1 ring-inset transition-all ${
+                      isTerminal
+                        ? 'bg-slate-50 text-slate-300 ring-slate-200 cursor-not-allowed'
+                        : 'bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-500 hover:text-white'
+                    }`}
                   >
                     <CheckCircle2 size={13} /> Approve
                   </button>
                   <button
-                    onClick={e => { e.stopPropagation(); onReject(item); }}
-                    className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-bold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-500 hover:text-white transition-all"
+                    disabled={isTerminal}
+                    onClick={e => { e.stopPropagation(); if (!isTerminal) onReject(item); }}
+                    title={isTerminal ? `Already ${item.status}` : 'Reject'}
+                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold ring-1 ring-inset transition-all ${
+                      isTerminal
+                        ? 'bg-slate-50 text-slate-300 ring-slate-200 cursor-not-allowed'
+                        : 'bg-rose-50 text-rose-700 ring-rose-200 hover:bg-rose-500 hover:text-white'
+                    }`}
                   >
                     <XCircle size={13} /> Reject
                   </button>
@@ -78,7 +92,8 @@ function SubmissionList({ items, selected, setSelected, canReview, onApprove, on
             </div>
           </div>
         </div>
-      )) : (
+        );
+      }) : (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 py-14 text-center">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
             <FileDigit size={20} className="text-slate-300" />
@@ -160,13 +175,36 @@ function DetailPanel({ selected, getDocumentUrl, setPreviewRecord }) {
             )}
           </div>
 
-          {/* Remarks */}
-          {selected.remarks && (
-            <div className="mb-5 rounded-xl bg-amber-50 border border-amber-100 px-4 py-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Remarks</p>
-              <p className="text-xs font-semibold text-amber-800">{selected.remarks}</p>
-            </div>
-          )}
+          {/* Remarks from logs — show all reviewer remarks */}
+          {(() => {
+            const remarkLogs = (selected.logs || []).filter(l => l.remarks && l.remarks.trim());
+            if (!remarkLogs.length) return null;
+            return (
+              <div className="mb-5 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Reviewer Remarks</p>
+                {remarkLogs.map((log, i) => {
+                  const isRejection = log.action === 'rejected';
+                  return (
+                    <div key={log.id || i} className={`rounded-xl border px-4 py-3 ${
+                      isRejection ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50 border-emerald-100'
+                    }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${
+                          isRejection ? 'text-rose-500' : 'text-emerald-600'
+                        }`}>{log.action?.replace(/_/g, ' ')} · {log.actor_role}</span>
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(log.created_at).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+                      <p className={`text-xs font-semibold leading-relaxed ${
+                        isRejection ? 'text-rose-800' : 'text-emerald-800'
+                      }`}>"{log.remarks}"</p>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Document */}
           <div>
@@ -231,8 +269,9 @@ export default function SubmissionPanel({
   submissions,
   onApprove,
   onReject,
+  onRefresh,
   canReview = false,
-  roleTabs = null,   // e.g. [{ id:'student', label:'Students', role:'student' }, ...]
+  roleTabs = null,
 }) {
   const [selected,      setSelected]      = useState(null);
   const [filters,       setFilters]       = useState({ search: '', year: '' });
@@ -281,21 +320,19 @@ export default function SubmissionPanel({
   const artificialDelay = () => new Promise(r => setTimeout(r, 5000));
 
   async function handleApprove(item) {
-    const remarks = window.prompt('Approval remarks', 'Approved');
-    if (remarks === null) return;
     setLoadingTask('Processing Approval…');
     try {
-      await onApprove(item.id, remarks);
+      await onApprove(item.id, 'Approved');
       await artificialDelay();
       setSelected(null);
+      onRefresh?.();
       setPopup({
         type: 'approve',
         title: 'Submission Approved',
         message: 'The record has been approved and forwarded to the next level.',
         meta: [
-          { label: 'Record',  value: item.record?.title || '—' },
-          { label: 'By',      value: item.submitter?.full_name || item.submitter?.email || '—' },
-          { label: 'Remarks', value: remarks },
+          { label: 'Record', value: item.record?.title || '—' },
+          { label: 'By',     value: item.submitter?.full_name || item.submitter?.email || '—' },
         ],
       });
     } catch {
@@ -305,7 +342,6 @@ export default function SubmissionPanel({
     }
   }
 
-  // Rejection is now a two-step: set target → modal collects remark → executes
   function handleRejectClick(item) {
     setRejectTarget(item);
   }
@@ -318,14 +354,15 @@ export default function SubmissionPanel({
       await onReject(item.id, remark);
       await artificialDelay();
       setSelected(null);
+      onRefresh?.();
       setPopup({
         type: 'reject',
         title: 'Submission Rejected',
         message: 'The record has been rejected. The submitter will be notified.',
         meta: [
-          { label: 'Record',  value: item.record?.title || '—' },
-          { label: 'By',      value: item.submitter?.full_name || item.submitter?.email || '—' },
-          { label: 'Reason',  value: remark },
+          { label: 'Record', value: item.record?.title || '—' },
+          { label: 'By',     value: item.submitter?.full_name || item.submitter?.email || '—' },
+          { label: 'Reason', value: remark },
         ],
       });
     } catch {

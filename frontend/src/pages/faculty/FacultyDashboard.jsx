@@ -17,6 +17,7 @@ import { createRecord, getRecords } from '../../services/recordService';
 import { approveSubmission, getSubmissions, rejectSubmission, submitRecord } from '../../services/submissionService';
 import { addStudent, getAssignedStudents } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../hooks/useNotifications';
 
 const sidebarItems = [
   { id: 'overview',  label: 'Overview',      icon: BarChart2 },
@@ -47,6 +48,7 @@ export default function FacultyDashboard() {
   const ownSubmissions   = useMemo(() => submissions.filter(s => s.submitter_id === profile?.id), [submissions, profile]);
   const studentSubs      = useMemo(() => submissions.filter(s => s.submitter_id !== profile?.id), [submissions, profile]);
   const pendingApprovals = useMemo(() => submissions.filter(s => s.current_reviewer_role === 'faculty'), [submissions]);
+  const notifications    = useNotifications(submissions);
 
   async function load() {
     try {
@@ -88,7 +90,7 @@ export default function FacultyDashboard() {
   }
 
   return (
-    <AppLayout title="Faculty Dashboard" sidebarItems={sidebarItems} activeTab={activeTab} onTabChange={setActiveTab}>
+    <AppLayout title="Faculty Dashboard" sidebarItems={sidebarItems} activeTab={activeTab} onTabChange={setActiveTab} notifications={notifications}>
 
       {loadingTask && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
@@ -159,8 +161,9 @@ export default function FacultyDashboard() {
       {/* ── APPROVAL QUEUE ── */}
       {activeTab === 'approvals' && (
         <SubmissionPanel title="Approval Queue" submissions={submissions} canReview
-          onApprove={async (id, r) => { await approveSubmission(id, r); await load(); }}
-          onReject={async (id, r)  => { await rejectSubmission(id, r);  await load(); }}
+          onApprove={async (id, r) => { await approveSubmission(id, r); }}
+          onReject={async (id, r)  => { await rejectSubmission(id, r);  }}
+          onRefresh={load}
         />
       )}
 

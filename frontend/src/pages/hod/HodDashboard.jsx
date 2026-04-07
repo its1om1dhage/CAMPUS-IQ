@@ -16,6 +16,7 @@ import { RD_TABLES } from '../../lib/tableConfig';
 import { createRecord } from '../../services/recordService';
 import { approveSubmission, getSubmissions, rejectSubmission, submitRecord } from '../../services/submissionService';
 import { addFaculty, addStudent, getUsers } from '../../services/userService';
+import { useNotifications } from '../../hooks/useNotifications';
 
 const sidebarItems = [
   { id: 'overview',  label: 'Overview',      icon: BarChart2 },
@@ -54,6 +55,7 @@ export default function HodDashboard() {
   const currentTable     = useMemo(() => RD_TABLES[tableName], [tableName]);
   const pendingApprovals = useMemo(() => submissions.filter(s => s.current_reviewer_role === 'hod'), [submissions]);
   const approved         = useMemo(() => submissions.filter(s => s.status === 'approved').length, [submissions]);
+  const notifications    = useNotifications(submissions);
 
   async function load() {
     try {
@@ -153,8 +155,9 @@ export default function HodDashboard() {
       {/* ── APPROVAL QUEUE ── */}
       {activeTab === 'approvals' && (
         <SubmissionPanel title="Department Approval Queue" submissions={submissions} canReview roleTabs={HOD_ROLE_TABS}
-          onApprove={async (id, r) => { await approveSubmission(id, r); await load(); }}
-          onReject={async (id, r)  => { await rejectSubmission(id, r);  await load(); }}
+          onApprove={async (id, r) => { await approveSubmission(id, r); }}
+          onReject={async (id, r)  => { await rejectSubmission(id, r);  }}
+          onRefresh={load}
         />
       )}
 
